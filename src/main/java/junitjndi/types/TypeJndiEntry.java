@@ -2,7 +2,7 @@ package junitjndi.types;
 
 public enum TypeJndiEntry
 {
-	RACINE("java:/"),
+	ROOT("java:/"),
 
 	GLOBAL("java:global/"),
 
