@@ -2,10 +2,13 @@ package junitjndi.contextes;
 
 import static org.fest.assertions.api.Assertions.assertThat;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.naming.NameClassPair;
+import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 
 import junitjndi.types.TypeJndiEntry;
@@ -144,5 +147,48 @@ public class SimpleInitialContextTest
 
 		sc.bind("java:app/niv1/niv2/niv3/niv4/monExemple", "exemple");
 		assertThat(sc.lookup("java:app/niv1/niv2/niv3/niv4/monExemple")).isEqualTo("exemple");
+	}
+
+	@Test(expected = NamingException.class)
+	public void testListNotfound() throws Exception
+	{
+		final SimpleInitialContext sc = new SimpleInitialContext();
+		sc.list("java:global/mock/mock2/mock3/mock4");
+	}
+
+	@Test()
+	public void testList() throws Exception
+	{
+		final SimpleInitialContext sc = new SimpleInitialContext();
+		sc.createSubcontext("java:global/zzzz").createSubcontext("qqqq").createSubcontext("iiii");
+
+		final Map<String, Object> dataSets = new HashMap<String, Object>(10);
+		dataSets.put("zzzz/qqqq/iiii/v1", "allo");
+		dataSets.put("zzzz/qqqq/iiii/v2", "maman");
+		dataSets.put("zzzz/qqqq/iiii/v3", "bobo");
+		dataSets.put("zzzz/qqqq/iiii/v4", "je");
+		dataSets.put("zzzz/qqqq/iiii/v5", "t'appelle");
+		dataSets.put("zzzz/qqqq/iiii/v6", "parce que je suis pas beau !");
+
+		for (Entry<String, Object> entry : dataSets.entrySet())
+		{
+			final String key = "java:global/" + entry.getKey();
+			sc.bind(key, entry.getValue());
+			assertThat(sc.lookup(key)).isEqualTo(entry.getValue());
+		}
+
+		final NamingEnumeration<NameClassPair> namingEnum = sc.list("java:global/zzzz/qqqq/iiii");
+		int count = 0;
+		while (namingEnum.hasMore())
+		{
+			final NameClassPair ncp = namingEnum.next();
+			count++;
+
+			assertThat(ncp).isNotNull();
+			assertThat(ncp.getName()).isNotNull();
+			assertThat(sc.lookup(ncp.getName())).isEqualTo(dataSets.get(StringUtils.substringAfter(ncp.getName(), "/")));
+		}
+
+		assertThat(count).isEqualTo(dataSets.size());
 	}
 }

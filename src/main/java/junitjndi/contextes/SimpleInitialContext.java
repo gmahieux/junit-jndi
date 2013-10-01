@@ -135,6 +135,35 @@ public class SimpleInitialContext extends NotImplementedContext implements Conte
 		return subContext;
 	}
 
+	@Override
+	public NamingEnumeration<NameClassPair> list(Name name) throws NamingException
+	{
+		return list(name.toString());
+	}
+
+	@Override
+	public NamingEnumeration<NameClassPair> list(String name) throws NamingException
+	{
+		final JndiEntryResolver jndiEntryResolver = new JndiEntryResolver(name, currentEntry, currentSubContext);
+
+		if (!SUBCONTEXTES.get(jndiEntryResolver.getJndiType()).contains(jndiEntryResolver.getResolvedName()))
+		{
+			throw new NamingException("any object is not binded to name : " + jndiEntryResolver.getFullQualifiedName());
+		}
+
+		final Set<NameClassPair> result = new LinkedHashSet<NameClassPair>(DICTIONNARIES.get(jndiEntryResolver.getJndiType()).size());
+		for (Entry<String, Object> entry : DICTIONNARIES.get(jndiEntryResolver.getJndiType()).entrySet())
+		{
+			if (StringUtils.startsWith(entry.getKey(), jndiEntryResolver.getResolvedName() + "/"))
+			{
+				final String className = entry.getValue() == null ? null : entry.getValue().getClass().toString();
+				result.add(new NameClassPair(jndiEntryResolver.getJndiType().getJndiEntry() + entry.getKey(), className, false));
+			}
+		}
+
+		return new MockNamingEnumeration(result);
+	}
+
 	public boolean isRootContext()
 	{
 		return this.currentEntry == null && StringUtils.isBlank(this.currentSubContext);
